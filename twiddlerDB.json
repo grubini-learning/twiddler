@@ -1,0 +1,22 @@
+{
+  "_id": {
+    "$oid": "5f69190a569a7574bf3e3561"
+  },
+  "firstName": "Giovani",
+  "lastName": "Rubini",
+  "username": "grubini",
+  "age": 32.0,
+  "birthday": "06/28/1988",
+  "messages": [
+    {
+      "userId": "123456789",
+      "content": "hey how are isogram's going",
+      "created_at": 1.600720326E+09
+    },
+    {
+      "userId": "123456789",
+      "content": "can you see this",
+      "created_at": 1.600720351E+09
+    }
+  ]
+}
