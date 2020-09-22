@@ -16,11 +16,9 @@ app.use((error, req, res, next) => {
   res.status(statusCode).json({ message, data })
 });
 
-
-
 app.use(postRoutes);
-console.log('ther url ', process.env.DB_URL);
-mongoose.connect(process.env.DB_URL, { useNewUrlParser: true })
+
+mongoose.connect(process.env.DB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(result => {
     console.log('connected');
     app.listen(8080);
