@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="jquery.js"></script>
+    <script src="dataGenerator.js"></script>
+    <script src="https://kit.fontawesome.com/eeb2243606.js" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js" integrity="sha384-6khuMg9gaYr5AxOqhkVIODVIvm9ynTT5J4V1cfthmT+emCG6yVmEZsRHdxlotUnm" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+    <style>
+      .wrapper {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .content {
+        flex: 4;
+      }
+
+      .post {
+        cursor: pointer;
+        width: 95%;
+        margin: 1% 0;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        transition: 0.3s;
+        padding: 1%;
+      }
+
+      .post:hover {
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+      }
+
+      .iconsWrapper {
+        display: flex;
+        flex-direction: row;
+        width: 80%;
+        justify-content: space-between
+      }
+
+      .postIcons {
+        font-size: 26px;
+        color: lightgrey;
+      }
+
+      .postIcons:hover {
+        color: black;
+      }
+
+      .mymenu {
+        margin: 0 auto;
+        list-style-type: none;
+        width: 60%;
+      }
+
+      .menuList {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4%;
+      }
+
+      .menuIcons {
+        margin-right: 9%;
+        font-size: 26px;
+        color: lightgrey;
+      }
+
+      .menuIcons:hover {
+        color: black;
+      }
+
+      .active {
+        color: black;
+      }
+
+      .menuLiteral {
+        font-size: 1.2em;
+        font-weight: 400;
+        margin: 0
+      }
+
+
+      .sidebar {
+        flex: 1;
+        padding: 1% 2%;
+      }
+
+      .logo {
+        font-size: 52px;
+        color: #00ACEE;
+        cursor: pointer;
+      }
+
+      .logo:hover {
+        color: #07BAFF;
+      }
+
+      .button {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #00ACEE;
+        color: white;
+        font-weight: 600;
+        padding: 5% 0;
+        border-radius: 50px;
+        margin-top: 3em;
+      }
+
+      .button:hover {
+        background-color: #07BAFF;
+      }
+
+      .modal-body {
+        overflow: scroll;
+        max-height: 45vh;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      var index = streams.home.length - 1;
+      const following = Object.entries(streams.users).length;
+      const $body = $('body');
+      const $main = $(`<main class="wrapper"></main>`);
+      const $aside = $(`<div class="sidebar">
+                          <span class="logo">
+                            <i class="fab fa-twitter"></i>
+                          </span>
+                          <ul class="mymenu"></ul>
+                        </div>`);
+      const $article = $('<div class="content"></div>');
+
+      const getHashTag = (message) => {
+        const aux = message.split('#');
+        if (aux.length === 2) {
+          return { msg: aux[0], hash: aux[1] };
+        }
+        return { msg: message, hash: '' };
+      };
+      const formulateTweet = (user, message, created_at) => {
+        return {
+          user,
+          message,
+          created_at
+        };
+      };
+      const post = (tweet, $parent, flag) => {
+        const { user, message, created_at } = tweet;
+        const { msg, hash } = getHashTag(message);
+        const createdAt = moment(new Date(created_at));
+
+        let $myPost = $(`<div class="post" value="${user}">
+                  <p style="margin-bottom: 5px;"><strong style="color: #07BAFF">@${user}</strong> : ${moment(createdAt).toNow('m')} ago</p>
+                  <div style="padding-left: 1%;">
+                    <p style="padding-top: 0; margin-top: 0;">
+                      ${msg} <span style="color: #2a79b4;">${(hash.length > 0) ? `#${hash}` : ''}</span>
+                    </p>
+                    <div class="iconsWrapper">
+                      <span class="postIcons">
+                        <i class="far fa-comment"></i>
+                      </span>
+                      <span class="postIcons">
+                        <i class="fas fa-crosshairs"></i>
+                      </span>
+                      <span class="postIcons">
+                        <i class="far fa-heart"></i>
+                      </span>
+                      <span class="postIcons">
+                        <i class="fas fa-upload"></i>
+                      </span>
+                    </div>
+                  </div>
+                </div>`
+        );
+        $myPost.on("click", (event) => {
+          const userName = event.currentTarget.attributes.value.nodeValue;
+          const myPosts = streams.users[userName];
+
+          $('#id-findModal').replaceWith(modal(myPosts));
+          $('#id-findModal').modal();
+        });
+        if (flag) {
+          $myPost.prependTo($parent);
+        } else {
+          $($myPost).appendTo($parent);
+        }
+      };
+      const modal = (myTweets) => {
+        const $mBody = $('.modal-body');
+        //$mBody.empty();
+        $mBody.children().remove();
+        myTweets.forEach(tweet => {
+          post(tweet, $mBody, false);
+        });
+      };
+
+      const addSaga = (post) => {
+        console.log(post)
+        const { user } = post;
+        const users = streams.users;
+        if (!users[user]) {
+          users[user] = [post];
+        } else {
+          users[user].push(post);
+        }
+      };
+      const message = () => {
+        const $mBody = $('.modal-body');
+        const $mFooter = $('.modal-footer');
+        const $messageForm = $(`<div class="messageForm">
+                                <div class="form-group">
+                                  <label for="message">What are you up to?</label>
+                                  <textarea class="form-control" id="message" aria-describedby="what are you up to?" placeholder="tell us here" rows="4" cols="50">${localStorage.getItem('message') || ''}</textarea>
+                                  <small id="messageHelp" class="form-text text-muted">Only share what you feel comfortable with, we are here to listen.</small>
+                                </div>
+                                <div class="form-check">
+                                  <input type="checkbox" class="form-check-input" id="persist">
+                                  <label class="form-check-label" for="persist">Save Draft</label>
+                                </div>
+                              </div>`);
+        //$mBody.empty();
+        $mBody.html($messageForm);
+        $mFooter.html('<button type="submit" class="btn btn-primary">Submit</button>');
+        $submit = $('.btn-primary');
+        $saveDraft = $('#persist');
+        $submit.on('click', (event) => {
+          const theMessage = $('#message')[0].value;
+          //{user: "mracus", message: " systematized a new form of life ", created_at: Fri Sep 11 2020 13:28:27 GMT-0400 (Eastern Daylight Time)}
+          const tweet = formulateTweet('grubini', theMessage, new Date());
+          post(tweet, $article, true);
+          addSaga(tweet);
+          $('#id-findModal').modal('hide');
+          localStorage.clear();
+          $saveDraft[0].checked = false;
+        })
+        if (localStorage.getItem('checked')) {
+          $('#persist').prop('checked', true);
+        }
+        $saveDraft.on('click', (event) => {
+          const theMessage = $('#message')[0].value;
+          const isChecked = event.target.checked;
+          if (isChecked) {
+            localStorage.setItem('message', theMessage);
+            localStorage.setItem('checked', true);
+          } else {
+            localStorage.clear();
+          }
+        });
+
+      };
+
+
+
+      const menusr = [
+        { name: 'Home', icon: '<i class="fas fa-home active"></i>' },
+        { name: 'Explore', icon: '<i class="fas fa-hashtag"></i>' },
+        { name: 'Notifications', icon: '<i class="far fa-bell"></i>' },
+        { name: 'Messages', icon: '<i class="far fa-envelope"></i>' },
+        { name: 'Bookmarks', icon: '<i class="fas fa-bookmark"></i>' },
+        { name: 'Lists', icon: '<i class="far fa-list-alt"></i>' },
+        { name: 'Profile', icon: '<i class="fas fa-globe-americas"></i>' }
+      ];
+
+      $(document).ready(function() {
+        $main.appendTo($body);
+        $aside.appendTo($main);
+        $article.appendTo($main);
+
+        const $mymenu = $('.mymenu');
+        menusr.forEach((item) => {
+          const { name, icon } = item;
+          $(`<li class="menuList">
+              <span class="menuIcons">${icon}</span>
+              <p class="menuLiteral">${name}</p>
+            </li>`).appendTo($mymenu);
+        });
+        $myButton = $(`<div class="button">Tweet</div>`);
+        $myButton.on('click', (event) => {
+          $('#id-findModal').replaceWith(message());
+          $('#id-findModal').modal();
+        });
+        $myButton.appendTo($mymenu);
+        $('.logo').on('click', (event) => {
+          location.reload(true);
+        });
+
+        $(`<div style="margin: 10% 0; display: flex; flex-direction: row; justify-content: space-around;">
+            <div style="justify-content: center; text-align:center;">
+              <p style="font-size: 1.4em; font-weight: 800; margin-bottom: 2px; padding: 0;">${index + 1}</p>
+              <p style="color: lightgray; font-weight: 800; margin-top: 0; padding: 0;">Tweets</p>
+            </div>
+            <div style="justify-content: center; text-align: center;">
+              <p style="font-size: 1.4em; font-weight: 800; margin-bottom: 2px; padding: 0;">${following}</p>
+              <p style="color: lightgray; font-weight: 800; margin-top: 0; padding: 0;">Following</p>
+            </div>
+          </div>`).appendTo($mymenu);
+        streams.home.reverse().forEach((tweet, index) => {
+          const { user, message, created_at } = tweet;
+          post(tweet, $article, false);
+        });
+      });
+
+    </script>
+
+    <div id="id-findModal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>
