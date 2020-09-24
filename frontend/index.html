@@ -2,9 +2,10 @@
 <html>
 
   <head>
+    <script src="dataGenerator.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js" integrity="sha512-quHCp3WbBNkwLfYUMd+KwBAgpVukJu5MncuQaWXgCrfgcxCJAq/fo+oqrRKOj+UKEmyMCG3tb8RB63W+EmrOBg==" crossorigin="anonymous"></script>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <script src="jquery.js"></script>
-    <script src="dataGenerator.js"></script>
     <script src="https://kit.fontawesome.com/eeb2243606.js" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js" integrity="sha384-6khuMg9gaYr5AxOqhkVIODVIvm9ynTT5J4V1cfthmT+emCG6yVmEZsRHdxlotUnm" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
@@ -133,6 +134,37 @@
                           <ul class="mymenu"></ul>
                         </div>`);
       const $article = $('<div class="content"></div>');
+      const isolateMessage = (messageId, messages) => {
+        return messages.some(el => el.messageId !== el._id);
+      };
+      const getTweets = () => {
+        axios.get('http://localhost:8080/posts')
+          .then(response => response.data)
+          .then(data => data.posts)
+          .then(posts => posts)
+          .then(posts => {
+            const users = {};
+            posts.forEach(el => {
+              //console.log(el.owner[0])
+              const { username, messages } = el.owner[0];
+              console.log(el)
+              if(users[username] === undefined) {
+                users[username] = [{ _id: messages[0], user: username, message: el.content, created_at: el.created_at }];
+              } else if (isolateMessage(messages[0], users[username])) {
+                users[username].push({ _id: messages[0], user: username, message: el.content, created_at: el.created_at });
+              }
+            });
+            streams.users = users;
+            console.log(streams)
+            return generateTweets(posts);
+          })
+          .then(() => {
+            streams.home.reverse().forEach((tweet, index) => {
+              const { user, message, created_at } = tweet;
+              post(tweet, $article, false);
+            });
+          });
+      }
 
       const getHashTag = (message) => {
         const aux = message.split('#');
@@ -199,7 +231,6 @@
       };
 
       const addSaga = (post) => {
-        console.log(post)
         const { user } = post;
         const users = streams.users;
         if (!users[user]) {
@@ -207,6 +238,19 @@
         } else {
           users[user].push(post);
         }
+      };
+      const sendPost = (tweet, parent, flag) => {
+        axios.post('http://localhost:8080/addPost', tweet)
+          .then(response => {
+            if (response.status !== 200 && response.status !== 201) {
+              throw new Error('Creating or editing a post failed!');
+            }
+            return response.json();
+          })
+          .then(resData => {
+            post(tweet, parent, flag);
+            addSaga(tweet);
+          });
       };
       const message = () => {
         const $mBody = $('.modal-body');
@@ -231,7 +275,7 @@
           const theMessage = $('#message')[0].value;
           //{user: "mracus", message: " systematized a new form of life ", created_at: Fri Sep 11 2020 13:28:27 GMT-0400 (Eastern Daylight Time)}
           const tweet = formulateTweet('grubini', theMessage, new Date());
-          post(tweet, $article, true);
+          sendPost(tweet, $article, true);
           addSaga(tweet);
           $('#id-findModal').modal('hide');
           localStorage.clear();
@@ -266,6 +310,8 @@
       ];
 
       $(document).ready(function() {
+
+        getTweets();
         $main.appendTo($body);
         $aside.appendTo($main);
         $article.appendTo($main);
@@ -298,10 +344,6 @@
               <p style="color: lightgray; font-weight: 800; margin-top: 0; padding: 0;">Following</p>
             </div>
           </div>`).appendTo($mymenu);
-        streams.home.reverse().forEach((tweet, index) => {
-          const { user, message, created_at } = tweet;
-          post(tweet, $article, false);
-        });
       });
 
     </script>

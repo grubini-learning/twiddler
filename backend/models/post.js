@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 
 const postSchema = new Schema({
   content: { type: String, required: true },
+  created_at: { type: Date, required: true},
   creator: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
